@@ -19,14 +19,16 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'nickolan',
-      database: 'restaurante_db',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      url: process.env.DATABASE_URL, // Usa la "External Database URL" de Render
       autoLoadEntities: true,
-      synchronize: true, // Set to false in production
+      synchronize: false, // ¡Ojo! Solo en desarrollo
+      ssl: true, // <--- Obligatorio para Render
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      extra: {
+        ssl: {
+          rejectUnauthorized: false, // <--- Para que no falle por el certificado de Render
+        },
+      },
     }),
     CloudinaryModule,
     MenuModule,
