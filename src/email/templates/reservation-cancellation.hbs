@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva Cancelada</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #1E1E1E;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1E1E1E 0%, #2A2A2A 100%);
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+
+        .header h1 {
+            color: #FFFFFF;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #B0B0B0;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            color: #FFFFFF;
+            margin-bottom: 20px;
+        }
+
+        .cancellation-card {
+            background-color: #252525;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cancellation-card h3 {
+            color: #FFFFFF;
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            color: #B0B0B0;
+        }
+
+        .detail-value {
+            color: #E0E0E0;
+            font-weight: 500;
+        }
+
+        .message-box {
+            background: linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: center;
+            border: 1px solid rgba(255, 165, 0, 0.2);
+        }
+
+        .message-box p {
+            color: #E0E0E0;
+            font-size: 15px;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+            color: #FFFFFF;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            margin: 20px 0;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 165, 0, 0.4);
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+            margin: 30px 0;
+        }
+
+        .footer {
+            background-color: #1A1A1A;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer p {
+            color: #808080;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .footer a {
+            color: #FFA500;
+            text-decoration: none;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                border-radius: 0;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .cancellation-card {
+                padding: 20px;
+            }
+
+            .message-box {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">🍽️</div>
+            <h1>Reserva Cancelada</h1>
+            <p>Esperamos verte pronto</p>
+        </div>
+
+        <div class="content">
+            <p class="greeting">Hola {{customerName}},</p>
+            <p style="margin-bottom: 30px; color: #B0B0B0;">
+                Tu reserva ha sido cancelada exitosamente. Lamentamos que no puedas acompañarnos en esta ocasión.
+            </p>
+
+            <div class="cancellation-card">
+                <h3>Detalles de la Reserva Cancelada</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Código de Reserva:</span>
+                    <span class="detail-value">#{{reservationId}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Fecha Original:</span>
+                    <span class="detail-value">{{originalDate}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Hora Original:</span>
+                    <span class="detail-value">{{originalTime}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Número de Personas:</span>
+                    <span class="detail-value">{{numberOfGuests}}</span>
+                </div>
+            </div>
+
+            <div class="message-box">
+                <p>
+                    <strong>¡Te extrañaremos!</strong><br><br>
+                    Sabemos que los planes cambian. Nos encantaría tenerte con nosotros en otra ocasión.
+                    Estamos aquí cuando estés listo para hacer una nueva reserva.
+                </p>
+            </div>
+
+            <center>
+                <a href="{{bookAgainUrl}}" class="cta-button">Reservar Nuevamente</a>
+            </center>
+
+            <div class="divider"></div>
+
+            <p style="color: #B0B0B0; font-size: 14px; text-align: center;">
+                Si tienes alguna pregunta o necesitas asistencia, nuestro equipo está disponible para ayudarte.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 Restaurant. Todos los derechos reservados.</p>
+            <p>
+                <a href="#">Política de Privacidad</a> |
+                <a href="#">Términos de Servicio</a>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

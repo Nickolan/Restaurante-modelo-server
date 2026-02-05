@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EstadoReserva, Reserva } from './entities/reserva.entity';
 import { Mesa } from './entities/mesa.entity';
 import { Zona } from './entities/zona.entity';
 import { TurnoConfig } from './entities/turno-config.entity';
+import { EmailService } from '../email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ReservasService {
+    private readonly logger = new Logger(ReservasService.name);
+
     constructor(
         @InjectRepository(Reserva)
         private reservaRepository: Repository<Reserva>,
@@ -17,6 +21,8 @@ export class ReservasService {
         private zonaRepository: Repository<Zona>,
         @InjectRepository(TurnoConfig)
         private turnoConfigRepository: Repository<TurnoConfig>,
+        private emailService: EmailService,
+        private configService: ConfigService,
     ) { }
 
     /**
@@ -140,7 +146,34 @@ export class ReservasService {
 
         // 5. Crear y guardar
         const reserva = this.reservaRepository.create(createReservaDto);
-        return this.reservaRepository.save(reserva);
+        const savedReserva = await this.reservaRepository.save(reserva);
+
+        // Load full reserva with relations for email
+        const fullReserva = await this.findOneReserva(savedReserva.id);
+
+        // Send reservation confirmation email
+        try {
+            await this.emailService.sendReservationConfirmation({
+                customerName: fullReserva.nombre_cliente,
+                customerEmail: fullReserva.correo_cliente,
+                reservationId: fullReserva.numero_reserva,
+                reservationDate: new Date(fullReserva.fecha_reserva).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                }),
+                reservationTime: fullReserva.turno.hora_spot,
+                numberOfGuests: fullReserva.numero_personas,
+                tableZone: fullReserva.mesa.zona?.nombre,
+                manageUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3000')}/reservations/${fullReserva.numero_reserva}`,
+            });
+            this.logger.log(`Reservation confirmation email sent for reservation ${fullReserva.numero_reserva}`);
+        } catch (error) {
+            this.logger.error(`Failed to send reservation confirmation email: ${error.message}`);
+            // Don't throw error - reservation was created successfully
+        }
+
+        return fullReserva;
     }
 
     async findAllReservas(): Promise<Reserva[]> {
@@ -165,9 +198,32 @@ export class ReservasService {
     }
 
     async removeReserva(id: number): Promise<void> {
+        // Get reservation details before deleting for email
+        const reserva = await this.findOneReserva(id);
+
         const result = await this.reservaRepository.delete(id);
         if (result.affected === 0) {
             throw new NotFoundException(`Reserva con ID ${id} no encontrada`);
+        }
+
+        // Send cancellation email
+        try {
+            await this.emailService.sendReservationCancellation({
+                customerName: reserva.nombre_cliente,
+                customerEmail: reserva.correo_cliente,
+                reservationId: reserva.numero_reserva,
+                originalDate: new Date(reserva.fecha_reserva).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                }),
+                originalTime: reserva.turno.hora_spot,
+                numberOfGuests: reserva.numero_personas,
+                bookAgainUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3000')}/reservations/new`,
+            });
+            this.logger.log(`Reservation cancellation email sent for reservation ${reserva.numero_reserva}`);
+        } catch (error) {
+            this.logger.error(`Failed to send reservation cancellation email: ${error.message}`);
         }
     }
 

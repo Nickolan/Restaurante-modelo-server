@@ -1,16 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Pedido } from './entities/pedido.entity';
 import { DetallePedido } from './entities/detalle-pedido.entity';
+import { EmailService } from '../email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PedidosService {
+    private readonly logger = new Logger(PedidosService.name);
+
     constructor(
         @InjectRepository(Pedido)
         private pedidoRepository: Repository<Pedido>,
         @InjectRepository(DetallePedido)
         private detallePedidoRepository: Repository<DetallePedido>,
+        private emailService: EmailService,
+        private configService: ConfigService,
     ) { }
 
     // Pedido CRUD
@@ -20,7 +26,39 @@ export class PedidosService {
         const nroOrden = `ORD-${fecha}-${random}`;
         createPedidoDto.numero_orden = nroOrden;
         const pedido = this.pedidoRepository.create(createPedidoDto);
-        return this.pedidoRepository.save(pedido);
+        const savedPedido = await this.pedidoRepository.save(pedido);
+
+        // Load full pedido with relations for email
+        const fullPedido = await this.findOnePedido(savedPedido.id);
+
+        // Send order confirmation email
+        try {
+            await this.emailService.sendOrderConfirmation({
+                customerName: fullPedido.nombre_cliente,
+                customerEmail: fullPedido.correo,
+                orderId: fullPedido.numero_orden,
+                orderDate: new Date(fullPedido.fecha).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                }),
+                items: fullPedido.detalles.map(detalle => ({
+                    nombre: detalle.producto?.nombre || detalle.combo?.nombre || 'Producto',
+                    cantidad: detalle.cantidad,
+                    precio: detalle.precio_unitario,
+                })),
+                subtotal: fullPedido.total,
+                total: fullPedido.total,
+                estimatedTime: '30-45 minutos',
+                trackingUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:5173')}/track/${fullPedido.numero_orden}`,
+            });
+            this.logger.log(`Order confirmation email sent for order ${fullPedido.numero_orden}`);
+        } catch (error) {
+            this.logger.error(`Failed to send order confirmation email: ${error.message}`);
+            // Don't throw error - order was created successfully
+        }
+
+        return fullPedido;
     }
 
     async findAllPedidos(): Promise<Pedido[]> {
@@ -41,9 +79,37 @@ export class PedidosService {
     }
 
     async updatePedido(id: number, updatePedidoDto: Partial<Pedido>): Promise<Pedido> {
-        await this.findOnePedido(id);
+        const previousPedido = await this.findOnePedido(id);
         await this.pedidoRepository.update(id, updatePedidoDto);
-        return this.findOnePedido(id);
+        const updatedPedido = await this.findOnePedido(id);
+
+        // Send status update email if estado changed
+        if (updatePedidoDto.estado && updatePedidoDto.estado !== previousPedido.estado) {
+            try {
+                const statusMap = {
+                    'En Cocina': { status: 'En Cocina' as const, time: '20-30 minutos' },
+                    'Listo': { status: 'Listo' as const, time: '10 minutos' },
+                    'En Camino': { status: 'En Camino' as const, time: '15 minutos' },
+                    'Entregado': { status: 'Entregado' as const, time: '' },
+                };
+
+                const statusInfo = statusMap[updatePedidoDto.estado] || { status: updatePedidoDto.estado as any, time: '' };
+
+                await this.emailService.sendOrderStatusUpdate({
+                    customerName: updatedPedido.nombre_cliente,
+                    customerEmail: updatedPedido.correo,
+                    orderId: updatedPedido.numero_orden,
+                    currentStatus: statusInfo.status,
+                    estimatedTime: statusInfo.time,
+                    trackingUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3000')}/track/${updatedPedido.numero_orden}`,
+                });
+                this.logger.log(`Order status update email sent for order ${updatedPedido.numero_orden}`);
+            } catch (error) {
+                this.logger.error(`Failed to send order status update email: ${error.message}`);
+            }
+        }
+
+        return updatedPedido;
     }
 
     async removePedido(id: number): Promise<void> {

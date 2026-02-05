@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de Pedido</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #1E1E1E;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1E1E1E 0%, #2A2A2A 100%);
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+
+        .header h1 {
+            color: #FFFFFF;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #B0B0B0;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            color: #FFFFFF;
+            margin-bottom: 20px;
+        }
+
+        .order-id {
+            background-color: #252525;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .order-id span {
+            color: #B0B0B0;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .order-id strong {
+            color: #FFA500;
+            font-size: 20px;
+        }
+
+        .status-container {
+            background: linear-gradient(135deg, #252525 0%, #2A2A2A 100%);
+            border-radius: 16px;
+            padding: 35px 30px;
+            margin: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-title {
+            text-align: center;
+            color: #B0B0B0;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 25px;
+        }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.1);
+            z-index: 0;
+        }
+
+        .progress-line-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #FFA500 0%, #FF8C00 100%);
+            transition: width 0.3s ease;
+        }
+
+        .progress-step {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            flex: 1;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #252525;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.completed .step-circle {
+            background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+            border-color: #FFA500;
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.4);
+        }
+
+        .progress-step.active .step-circle {
+            background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+            border-color: #FFA500;
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.6);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(255, 165, 0, 0.6);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(255, 165, 0, 0.8);
+            }
+        }
+
+        .step-label {
+            font-size: 11px;
+            color: #808080;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .progress-step.active .step-label,
+        .progress-step.completed .step-label {
+            color: #FFA500;
+            font-weight: 600;
+        }
+
+        .current-status {
+            background-color: rgba(255, 165, 0, 0.15);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(255, 165, 0, 0.3);
+        }
+
+        .current-status h2 {
+            color: #FFA500;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .current-status p {
+            color: #E0E0E0;
+            font-size: 14px;
+        }
+
+        .estimated-time {
+            background-color: #252525;
+            border-left: 4px solid #FFA500;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .estimated-time p {
+            margin: 0;
+            color: #E0E0E0;
+            font-size: 14px;
+        }
+
+        .estimated-time strong {
+            color: #FFA500;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+            color: #FFFFFF;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            margin: 20px 0;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 165, 0, 0.4);
+        }
+
+        .footer {
+            background-color: #1A1A1A;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer p {
+            color: #808080;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .footer a {
+            color: #FFA500;
+            text-decoration: none;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                border-radius: 0;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .status-container {
+                padding: 25px 15px;
+            }
+
+            .step-circle {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+
+            .step-label {
+                font-size: 9px;
+            }
+
+            .current-status h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">🍽️</div>
+            <h1>Actualización de Pedido</h1>
+            <p>Tu pedido está en proceso</p>
+        </div>
+
+        <div class="content">
+            <p class="greeting">Hola {{customerName}},</p>
+            <p style="margin-bottom: 20px; color: #B0B0B0;">
+                Tenemos una actualización sobre tu pedido.
+            </p>
+
+            <div class="order-id">
+                <span>Número de Pedido</span>
+                <strong>#{{orderId}}</strong>
+            </div>
+
+            <div class="status-container">
+                <div class="status-title">Estado del Pedido</div>
+
+                <div class="progress-bar">
+                    <div class="progress-line">
+                        <div class="progress-line-fill"
+                            style="width: {{#if (eq currentStatus 'En Cocina')}}25%{{else}}{{#if (eq currentStatus 'Listo')}}66%{{else}}{{#if (eq currentStatus 'En Camino')}}100%{{else}}100%{{/if}}{{/if}}{{/if}};">
+                        </div>
+                    </div>
+
+                    <div class="progress-step {{#if (eq currentStatus 'En Cocina')}}active{{else}}completed{{/if}}">
+                        <div class="step-circle">🍳</div>
+                        <div class="step-label">En Cocina</div>
+                    </div>
+
+                    <div
+                        class="progress-step {{#if (eq currentStatus 'Listo')}}active{{else}}{{#if (eq currentStatus 'En Cocina')}}{{else}}completed{{/if}}{{/if}}">
+                        <div class="step-circle">✓</div>
+                        <div class="step-label">Listo</div>
+                    </div>
+
+                    <div
+                        class="progress-step {{#if (eq currentStatus 'En Camino')}}active{{else}}{{#if (eq currentStatus 'Entregado')}}completed{{/if}}{{/if}}">
+                        <div class="step-circle">🚗</div>
+                        <div class="step-label">En Camino</div>
+                    </div>
+
+                    <div class="progress-step {{#if (eq currentStatus 'Entregado')}}active{{/if}}">
+                        <div class="step-circle">🎉</div>
+                        <div class="step-label">Entregado</div>
+                    </div>
+                </div>
+
+                <div class="current-status">
+                    <h2>{{currentStatus}}</h2>
+                    <p>
+                        {{#if (eq currentStatus 'En Cocina')}}
+                        Nuestros chefs están preparando tu pedido con ingredientes frescos.
+                        {{else}}{{#if (eq currentStatus 'Listo')}}
+                        ¡Tu pedido está listo! Pronto estará en camino.
+                        {{else}}{{#if (eq currentStatus 'En Camino')}}
+                        Tu pedido está en camino. ¡Prepárate para disfrutar!
+                        {{else}}
+                        ¡Tu pedido ha sido entregado! Esperamos que lo disfrutes.
+                        {{/if}}{{/if}}{{/if}}
+                    </p>
+                </div>
+            </div>
+
+            {{#if estimatedTime}}
+            <div class="estimated-time">
+                <p><strong>Tiempo estimado:</strong> {{estimatedTime}}</p>
+            </div>
+            {{/if}}
+
+            <center>
+                <a href="{{trackingUrl}}" class="cta-button">Seguir mi Pedido</a>
+            </center>
+
+            <p style="margin-top: 30px; color: #B0B0B0; font-size: 14px; text-align: center;">
+                Gracias por tu paciencia. Te mantendremos informado sobre cualquier cambio.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 Restaurant. Todos los derechos reservados.</p>
+            <p>
+                <a href="#">Política de Privacidad</a> |
+                <a href="#">Términos de Servicio</a>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

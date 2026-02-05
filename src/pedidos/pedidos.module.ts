@@ -7,9 +7,10 @@ import { DetallePedido } from './entities/detalle-pedido.entity';
 import { MercadoPagoService } from './mercadopago.service';
 import { Producto } from '../menu/entities/producto.entity';
 import { Combo } from '../menu/entities/combo.entity';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Pedido, DetallePedido, Producto, Combo])],
+  imports: [TypeOrmModule.forFeature([Pedido, DetallePedido, Producto, Combo]), EmailModule],
   controllers: [PedidosController],
   providers: [PedidosService, MercadoPagoService],
 })

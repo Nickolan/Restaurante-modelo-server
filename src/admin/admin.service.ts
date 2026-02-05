@@ -48,7 +48,7 @@ export class AdminService {
             .createQueryBuilder('pedido')
             .select('COALESCE(SUM(pedido.total), 0)', 'total')
             .where('DATE(pedido.fecha) = CURRENT_DATE')
-            .andWhere('LOWER(pedido.estado) != :estado', { estado: 'cancelado' })
+            .andWhere('(pedido.estado) != :estado', { estado: 'cancelado' })
             .getRawOne();
 
         return parseFloat(result.total) || 0;
@@ -60,7 +60,7 @@ export class AdminService {
     private async getPedidosPendientes(): Promise<number> {
         return await this.pedidoRepository
             .createQueryBuilder('pedido')
-            .where('LOWER(pedido.estado) = :estado', { estado: 'pendiente' })
+            .where('(pedido.estado) = :estado', { estado: 'pendiente' })
             .getCount();
     }
 
