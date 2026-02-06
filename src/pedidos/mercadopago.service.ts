@@ -147,6 +147,9 @@ export class MercadoPagoService {
                 throw new BadRequestException('Invalid webhook data: missing payment ID');
             }
 
+            console.log("Obteniendo external reference");
+            
+
             // In a production environment, you should fetch the payment details
             // from Mercado Pago API to verify the payment status
             // For now, we'll trust the webhook data
@@ -154,15 +157,22 @@ export class MercadoPagoService {
             // Get the external_reference (pedido ID) from the payment
             const externalReference = paymentData.external_reference;
             if (!externalReference) {
+                console.log('Invalid webhook data: missing external reference');
+                
                 throw new BadRequestException('Invalid webhook data: missing external reference');
             }
+            
 
             const pedidoId = parseInt(externalReference, 10);
             const pedido = await this.pedidoRepository.findOne({
                 where: { id: pedidoId },
             });
 
+            console.log("Pedido Obtenido");
+            
+
             if (!pedido) {
+                console.log("Pedido no encontrado");
                 throw new NotFoundException(`Pedido con ID ${pedidoId} no encontrado`);
             }
 
@@ -170,11 +180,16 @@ export class MercadoPagoService {
             // Mercado Pago payment statuses: approved, pending, rejected, etc.
             const paymentStatus = paymentData.status;
 
+            console.log("Estado del pago: ", paymentData.status);
+            
+
             if (paymentStatus === 'approved') {
                 pedido.estado = EstadoPedido.PAGADO;
 
                 // Send order confirmation email after successful payment
                 try {
+                    console.log("Enviando correo");
+                    
                     await this.pedidosService.sendOrderConfirmationEmail(pedido.id);
                 } catch (emailError) {
                     // Log email error but don't fail the webhook
