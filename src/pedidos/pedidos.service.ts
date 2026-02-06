@@ -25,40 +25,53 @@ export class PedidosService {
         const random = Math.random().toString(36).substring(2, 6).toUpperCase();
         const nroOrden = `ORD-${fecha}-${random}`;
         createPedidoDto.numero_orden = nroOrden;
+
         const pedido = this.pedidoRepository.create(createPedidoDto);
         const savedPedido = await this.pedidoRepository.save(pedido);
 
-        // Load full pedido with relations for email
+        // Load full pedido with relations
         const fullPedido = await this.findOnePedido(savedPedido.id);
 
-        // Send order confirmation email
+        this.logger.log(`Order created: ${fullPedido.numero_orden} with status ${fullPedido.estado}`);
+
+        return fullPedido;
+    }
+
+    async sendOrderConfirmationEmail(pedidoId: number): Promise<void> {
         try {
+            // Load full pedido with relations
+            const pedido = await this.findOnePedido(pedidoId);
+
+            if (!pedido.detalles || pedido.detalles.length === 0) {
+                throw new Error('No hay detalles en el pedido');
+            }
+
             await this.emailService.sendOrderConfirmation({
-                customerName: fullPedido.nombre_cliente,
-                customerEmail: fullPedido.correo,
-                orderId: fullPedido.numero_orden,
-                orderDate: new Date(fullPedido.fecha).toLocaleDateString('es-ES', {
+                customerName: pedido.nombre_cliente,
+                customerEmail: pedido.correo,
+                orderId: pedido.numero_orden,
+                orderDate: new Date(pedido.fecha).toLocaleDateString('es-ES', {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
                 }),
-                items: fullPedido.detalles.map(detalle => ({
-                    nombre: detalle.producto?.nombre || detalle.combo?.nombre || 'Producto',
+                items: pedido.detalles.map(detalle => ({
+                    nombre: detalle.tipo_item === 'producto'
+                        ? detalle.producto?.nombre
+                        : detalle.combo?.nombre || 'Item',
                     cantidad: detalle.cantidad,
                     precio: detalle.precio_unitario,
                 })),
-                subtotal: fullPedido.total,
-                total: fullPedido.total,
+                subtotal: pedido.total,
+                total: pedido.total,
                 estimatedTime: '30-45 minutos',
-                trackingUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:5173')}/track/${fullPedido.numero_orden}`,
+                trackingUrl: `${this.configService.get('FRONTEND_URL', 'https://restaurante-modelo-nu.vercel.app')}/track/${pedido.numero_orden}`,
             });
-            this.logger.log(`Order confirmation email sent for order ${fullPedido.numero_orden}`);
+            this.logger.log(`Order confirmation email sent for order ${pedido.numero_orden}`);
         } catch (error) {
             this.logger.error(`Failed to send order confirmation email: ${error.message}`);
-            // Don't throw error - order was created successfully
+            // Don't throw error - payment was successful, email failure shouldn't break the flow
         }
-
-        return fullPedido;
     }
 
     async findAllPedidos(): Promise<Pedido[]> {

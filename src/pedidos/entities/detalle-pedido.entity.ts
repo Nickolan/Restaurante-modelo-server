@@ -3,6 +3,11 @@ import { Pedido } from './pedido.entity';
 import { Producto } from '../../menu/entities/producto.entity';
 import { Combo } from '../../menu/entities/combo.entity';
 
+export enum TipoItem {
+    PRODUCTO = 'producto',
+    COMBO = 'combo'
+}
+
 @Entity('detalle_pedido')
 export class DetallePedido {
     @PrimaryGeneratedColumn()
@@ -16,6 +21,13 @@ export class DetallePedido {
 
     @Column({ name: 'combo_id', nullable: true })
     combo_id: number;
+
+    @Column({
+        type: 'enum',
+        enum: TipoItem,
+        name: 'tipo_item'
+    })
+    tipo_item: TipoItem;
 
     @Column({ type: 'int' })
     cantidad: number;

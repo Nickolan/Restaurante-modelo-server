@@ -18,8 +18,18 @@ export class EmailService {
     private templates: Map<string, handlebars.TemplateDelegate> = new Map();
 
     constructor(private configService: ConfigService) {
+        this.registerHandlebarsHelpers();
         this.initializeTransporter();
         this.loadTemplates();
+    }
+
+    private registerHandlebarsHelpers() {
+        // Register 'eq' helper for equality comparisons in templates
+        handlebars.registerHelper('eq', function (a, b) {
+            return a === b;
+        });
+
+        this.logger.log('Handlebars helpers registered');
     }
 
     private initializeTransporter() {
@@ -28,8 +38,8 @@ export class EmailService {
             port: this.configService.get<number>('SMTP_PORT', 587),
             secure: true, // true for 465, false for other ports
             auth: {
-                user: this.configService.get<string>('SMTP_USER'),
-                pass: this.configService.get<string>('SMTP_PASS'),
+                user: "lucas.gordillo.3591@gmail.com",
+                pass: "cemd ctrx oklw aubp",
             },
         });
 
@@ -86,6 +96,8 @@ export class EmailService {
 
     async sendOrderConfirmation(data: OrderConfirmationData): Promise<void> {
         const template = this.templates.get('order-confirmation');
+        console.log("sendOrderCnfirmation: ", data.items);
+        
         if (!template) {
             throw new Error('Order confirmation template not found');
         }

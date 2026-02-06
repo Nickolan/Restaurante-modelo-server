@@ -6,6 +6,7 @@ import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { EstadoPedido, Pedido } from './entities/pedido.entity';
 import { Producto } from '../menu/entities/producto.entity';
 import { Combo } from '../menu/entities/combo.entity';
+import { PedidosService } from './pedidos.service';
 
 @Injectable()
 export class MercadoPagoService {
@@ -20,10 +21,11 @@ export class MercadoPagoService {
         private productoRepository: Repository<Producto>,
         @InjectRepository(Combo)
         private comboRepository: Repository<Combo>,
+        private pedidosService: PedidosService,
     ) {
         const accessToken = this.configService.get<string>('MERCADOPAGO_ACCESS_TOKEN');
         console.log(accessToken);
-        
+
         if (!accessToken) {
             throw new Error('MERCADOPAGO_ACCESS_TOKEN is not configured');
         }
@@ -82,19 +84,19 @@ export class MercadoPagoService {
                 }),
             );
             console.log(items);
-            
+
 
             // Create preference with Mercado Pago
             const preferenceData = {
                 items,
                 back_urls: {
-                    success: 'https://www.google.com/payment/success',
-                    failure: 'https://www.google.com/payment/failure',
-                    pending: 'https://www.google.com/payment/pending',
+                    success: 'https://restaurante-modelo-nu.vercel.app',
+                    failure: 'https://restaurante-modelo-nu.vercel.app',
+                    pending: 'https://restaurante-modelo-nu.vercel.app/payment/pending',
                 },
                 auto_return: 'all',
                 external_reference: pedido.id.toString(),
-                notification_url: 'http://localhost:3000/pedidos/webhook', // Adjust to your backend URL
+                notification_url: 'https://restaurante-modelo-server.onrender.com/pedidos/webhook', // Adjust to your backend URL
                 payer: {
                     name: pedido.nombre_cliente,
                     email: pedido.correo,
@@ -106,11 +108,11 @@ export class MercadoPagoService {
             };
 
             console.log(preferenceData);
-            
+
 
             const response = await this.preference.create({ body: preferenceData });
             console.log(response);
-            
+
 
             if (!response.id) {
                 throw new InternalServerErrorException('Error al crear la preferencia de pago');
@@ -119,7 +121,7 @@ export class MercadoPagoService {
             return { preferenceId: response.id };
         } catch (error) {
             console.log(error);
-            
+
             if (error instanceof NotFoundException || error instanceof BadRequestException) {
                 throw error;
             }
@@ -131,6 +133,8 @@ export class MercadoPagoService {
 
     async handleWebhook(paymentData: any): Promise<void> {
         try {
+            console.log("HandleWebhook: ", paymentData);
+            
             // Mercado Pago sends notifications with different types
             // We're interested in 'payment' type notifications
             if (paymentData.type !== 'payment') {
@@ -168,11 +172,22 @@ export class MercadoPagoService {
 
             if (paymentStatus === 'approved') {
                 pedido.estado = EstadoPedido.PAGADO;
+
+                // Send order confirmation email after successful payment
+                try {
+                    await this.pedidosService.sendOrderConfirmationEmail(pedido.id);
+                } catch (emailError) {
+                    // Log email error but don't fail the webhook
+                    console.error('Failed to send order confirmation email:', emailError.message);
+                }
             } else if (paymentStatus === 'rejected') {
                 pedido.estado = EstadoPedido.FALLADO;
             } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
                 pedido.estado = EstadoPedido.PENDIENTE;
             }
+
+            console.log("Pedido modificado: ", pedido);
+            
 
             await this.pedidoRepository.save(pedido);
         } catch (error) {
