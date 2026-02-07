@@ -2,6 +2,11 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMan
 import { Zona } from './zona.entity';
 import { Reserva } from './reserva.entity';
 
+export enum EstadoMesa {
+  DISPONIBLE = 'disponible',
+  BLOQUEDA = 'bloqueada', // Cuando Mercado Pago avisa que se pagó
+}
+
 @Entity('mesa')
 export class Mesa {
     @PrimaryGeneratedColumn()
@@ -13,8 +18,12 @@ export class Mesa {
     @Column({ type: 'int' })
     capacidad: number;
 
-    @Column({ type: 'varchar', length: 50 })
-    estado: string;
+    @Column({
+        type: 'enum',
+        enum: EstadoMesa,
+        default: EstadoMesa.DISPONIBLE
+    })
+    estado: EstadoMesa;
 
     @Column({ type: 'text', nullable: true })
     descripcion: string;
