@@ -27,7 +27,7 @@ import { EmailModule } from './email/email.module';
       // database: 'restaurante_db',
       url: process.env.DATABASE_URL, // Usa la "External Database URL" de Render
       autoLoadEntities: true,
-      dropSchema: true,
+      dropSchema: false,
       synchronize: false, // ¡Ojo! Solo en desarrollo
       ssl: true, // <--- Obligatorio para Render
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
