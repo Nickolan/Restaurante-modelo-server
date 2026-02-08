@@ -177,7 +177,7 @@ export class ReservasService {
     }
 
     async findAllReservas(): Promise<Reserva[]> {
-        return this.reservaRepository.find({ relations: ['mesa', 'turno'] });
+        return this.reservaRepository.find({ relations: ['mesa', 'turno', 'mesa.zona'] });
     }
 
     async findOneReserva(id: number): Promise<Reserva> {
