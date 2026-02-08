@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, InternalServerError
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { MercadoPagoConfig, Preference, Payment } from 'mercadopago'; // Añade Payment aquí
 import { EstadoPedido, Pedido } from './entities/pedido.entity';
 import { Producto } from '../menu/entities/producto.entity';
 import { Combo } from '../menu/entities/combo.entity';
@@ -132,86 +132,85 @@ export class MercadoPagoService {
     }
 
     async handleWebhook(paymentData: any): Promise<void> {
-        try {
-            console.log("HandleWebhook: ", paymentData);
-            
-            // Mercado Pago sends notifications with different types
-            // We're interested in 'payment' type notifications
-            if (paymentData.type !== 'payment') {
-                return;
-            }
+    try {
+        console.log("HandleWebhook recibido:", paymentData);
 
-            // Extract payment ID from the notification
-            const paymentId = paymentData.data?.id;
-            if (!paymentId) {
-                throw new BadRequestException('Invalid webhook data: missing payment ID');
-            }
+        // 1. Extraer el ID del pago según el formato de la notificación
+        // Mercado Pago puede enviar el ID en data.id o directamente en resource
+        const paymentId = paymentData.data?.id || (paymentData.type === 'payment' ? paymentData.resource : null);
 
-            console.log("Obteniendo external reference");
-            
-
-            // In a production environment, you should fetch the payment details
-            // from Mercado Pago API to verify the payment status
-            // For now, we'll trust the webhook data
-
-            // Get the external_reference (pedido ID) from the payment
-            const externalReference = paymentData.external_reference;
-            if (!externalReference) {
-                console.log('Invalid webhook data: missing external reference');
-                
-                throw new BadRequestException('Invalid webhook data: missing external reference');
-            }
-            
-
-            const pedidoId = parseInt(externalReference, 10);
-            const pedido = await this.pedidoRepository.findOne({
-                where: { id: pedidoId },
-            });
-
-            console.log("Pedido Obtenido");
-            
-
-            if (!pedido) {
-                console.log("Pedido no encontrado");
-                throw new NotFoundException(`Pedido con ID ${pedidoId} no encontrado`);
-            }
-
-            // Update order status based on payment status
-            // Mercado Pago payment statuses: approved, pending, rejected, etc.
-            const paymentStatus = paymentData.status;
-
-            console.log("Estado del pago: ", paymentData.status);
-            
-
-            if (paymentStatus === 'approved') {
-                pedido.estado = EstadoPedido.PAGADO;
-
-                // Send order confirmation email after successful payment
-                try {
-                    console.log("Enviando correo");
-                    
-                    await this.pedidosService.sendOrderConfirmationEmail(pedido.id);
-                } catch (emailError) {
-                    // Log email error but don't fail the webhook
-                    console.error('Failed to send order confirmation email:', emailError.message);
-                }
-            } else if (paymentStatus === 'rejected') {
-                pedido.estado = EstadoPedido.FALLADO;
-            } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
-                pedido.estado = EstadoPedido.PENDIENTE;
-            }
-
-            console.log("Pedido modificado: ", pedido);
-            
-
-            await this.pedidoRepository.save(pedido);
-        } catch (error) {
-            if (error instanceof NotFoundException || error instanceof BadRequestException) {
-                throw error;
-            }
-            throw new InternalServerErrorException(
-                `Error al procesar webhook de Mercado Pago: ${error.message}`,
-            );
+        // Si no es un evento de pago o no hay ID, ignoramos (evita errores con merchant_order)
+        if (!paymentId || (paymentData.type && paymentData.type !== 'payment')) {
+            console.log('Notificación recibida no es de tipo payment, saltando...');
+            return;
         }
+
+        console.log(`Consultando detalles para el pago: ${paymentId}`);
+
+        // 2. BUSCAR EL PAGO REAL EN LA API DE MERCADO PAGO
+        // Instanciamos el objeto Payment con nuestro cliente
+        const paymentDetails = new Payment(this.client);
+        const payment = await paymentDetails.get({ id: paymentId });
+
+        // 3. Ahora sí tenemos acceso a external_reference y status real
+        const externalReference = payment.external_reference;
+        const paymentStatus = payment.status;
+
+        if (!externalReference) {
+            console.log('El pago no contiene external_reference');
+            throw new BadRequestException('Invalid payment: missing external reference');
+        }
+
+        console.log(`Referencia externa (Pedido ID): ${externalReference}`);
+        console.log(`Estado del pago: ${paymentStatus}`);
+
+        // 4. Buscar el pedido en tu base de datos
+        const pedidoId = parseInt(externalReference, 10);
+        const pedido = await this.pedidoRepository.findOne({
+            where: { id: pedidoId },
+        });
+
+        if (!pedido) {
+            console.error(`Pedido con ID ${pedidoId} no encontrado en la DB`);
+            throw new NotFoundException(`Pedido con ID ${pedidoId} no encontrado`);
+        }
+
+        // 5. Lógica de actualización de estados
+        // Evitamos procesar si el pedido ya está pagado (idempotencia)
+        if (pedido.estado === EstadoPedido.PAGADO) {
+            console.log('El pedido ya fue marcado como pagado anteriormente.');
+            return;
+        }
+
+        if (paymentStatus === 'approved') {
+            pedido.estado = EstadoPedido.PAGADO;
+            
+            // Intentar enviar el correo
+            try {
+                console.log("Enviando correo de confirmación...");
+                await this.pedidosService.sendOrderConfirmationEmail(pedido.id);
+            } catch (emailError) {
+                console.error('Error al enviar email (el proceso continúa):', emailError.message);
+            }
+        } else if (paymentStatus === 'rejected') {
+            pedido.estado = EstadoPedido.FALLADO;
+        } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
+            pedido.estado = EstadoPedido.PENDIENTE;
+        }
+
+        // 6. Guardar cambios
+        await this.pedidoRepository.save(pedido);
+        console.log(`Pedido ${pedidoId} actualizado a estado: ${pedido.estado}`);
+
+    } catch (error) {
+        console.error('Error en handleWebhook:', error);
+        
+        // Es importante no lanzar excepciones 500 siempre, 
+        // porque Mercado Pago reintentará el envío infinitamente.
+        if (error instanceof NotFoundException || error instanceof BadRequestException) {
+            throw error;
+        }
+        throw new InternalServerErrorException(`Error procesando webhook: ${error.message}`);
     }
+}
 }
