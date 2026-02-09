@@ -165,7 +165,7 @@ export class ReservasService {
                 reservationTime: fullReserva.turno.hora_spot,
                 numberOfGuests: fullReserva.numero_personas,
                 tableZone: fullReserva.mesa.zona?.nombre,
-                manageUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3000')}/reservations/${fullReserva.numero_reserva}`,
+                manageUrl: `${this.configService.get('FRONTEND_URL', 'https://restaurante-modelo-nu.vercel.app')}`,
             });
             this.logger.log(`Reservation confirmation email sent for reservation ${fullReserva.numero_reserva}`);
         } catch (error) {
@@ -219,7 +219,7 @@ export class ReservasService {
                 }),
                 originalTime: reserva.turno.hora_spot,
                 numberOfGuests: reserva.numero_personas,
-                bookAgainUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3000')}/reservations/new`,
+                bookAgainUrl: `${this.configService.get('FRONTEND_URL', 'https://restaurante-modelo-nu.vercel.app')}`,
             });
             this.logger.log(`Reservation cancellation email sent for reservation ${reserva.numero_reserva}`);
         } catch (error) {
