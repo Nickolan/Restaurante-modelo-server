@@ -177,7 +177,7 @@ export class EmailService {
       });
       console.log(`Correo de bienvenida enviado a ${user.email}`);
     } catch (error) {
-      console.error(`Error al enviar correo de bienvenida: ${error}`);
+      console.error(`Error al enviar correo de bienvenida: ${error.message}`);
     }
   }
 }

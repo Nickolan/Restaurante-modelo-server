@@ -42,7 +42,7 @@ export class AppController {
       
       return `Correo de prueba enviado con éxito a ${mockUsuario.email}. ¡Revisa tu bandeja de entrada!`;
     } catch (error) {
-      console.error('Error en /test-mail:', error);
+      console.error('Error en /test-mail:', error.message);
       return `Error al enviar el correo: ${error.message}`;
     }
   }
