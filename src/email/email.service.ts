@@ -10,6 +10,7 @@ import {
     ReservationCancellationData,
     OrderStatusUpdateData,
 } from './dto/email-data.dto';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class EmailService {
@@ -155,4 +156,22 @@ export class EmailService {
             html,
         );
     }
+
+    async sendWelcomeEmail(user: User) {
+    try {
+      await this.transporter.sendMail({
+        from: '"Restaurante" <no-reply@restaurante.com>',
+        to: user.email,
+        subject: '¡Bienvenido a Restaurante!',
+        html: `
+          <h1>¡Hola ${user.fullName}!</h1>
+          <p>Mensaje de prueba enviado con éxito.</p>
+          <p>Ya puedes empezar a buscar y realizar tu pedido.</p>
+        `,
+      });
+      console.log(`Correo de bienvenida enviado a ${user.email}`);
+    } catch (error) {
+      console.error(`Error al enviar correo de bienvenida: ${error}`);
+    }
+  }
 }
