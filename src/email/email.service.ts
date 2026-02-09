@@ -44,6 +44,12 @@ export class EmailService {
             },
         });
 
+        console.log("TRANSPORTADOR: ",this.transporter.transporter);
+    console.log("==========================================================");
+    
+    console.log(this.transporter);
+    
+
         this.logger.log('Email transporter initialized');
     }
 
