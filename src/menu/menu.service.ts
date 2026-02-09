@@ -111,7 +111,7 @@ export class MenuService {
     }
 
     async findAllCombos(): Promise<Combo[]> {
-        return this.comboRepository.find({ relations: ['comboProductos'] });
+        return this.comboRepository.find({ relations: ['comboProductos', 'comboProductos.producto'] });
     }
 
     async findOneCombo(id: number): Promise<Combo> {
