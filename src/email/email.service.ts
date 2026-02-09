@@ -39,8 +39,8 @@ export class EmailService {
             port: 465,
             secure: true, // true for 465, false for other ports
             auth: {
-                user: "lucas.gordillo.3591@gmail.com",
-                pass: "cemd ctrx oklw aubp",
+                user: "nicolassantiagonavarrete.nsn@gmail.com",
+                pass: "eeza lxex rxql cdak",
             },
         });
 
