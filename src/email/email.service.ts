@@ -11,6 +11,7 @@ import {
     OrderStatusUpdateData,
 } from './dto/email-data.dto';
 import { User } from 'src/users/entities/user.entity';
+require('dotenv').config();
 
 @Injectable()
 export class EmailService {
@@ -35,12 +36,12 @@ export class EmailService {
 
     private initializeTransporter() {
         this.transporter = nodemailer.createTransport({
-            host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
+            host: "smtp.gmail.com",
             port: 465,
-            secure: true, // true for 465, false for other ports
+            secure: true,
             auth: {
-                user: "nicolassantiagonavarrete.nsn@gmail.com",
-                pass: "eeza lxex rxql cdak",
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
             },
         });
 
